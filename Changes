@@ -1,75 +1,96 @@
-Revision history for Perl extension web.
-
+----------------------------
+revision 1.35
+date: 2000/08/17 10:00:22;  author: unrzc9;  state: Exp;  lines: +66 -10
+Improvement of PrintHeader()
+----------------------------
+revision 1.34
+date: 2000/08/02 07:50:10;  author: unrzc9;  state: Exp;  lines: +35 -7
+New function: GetPassedDaysbyMonth
+----------------------------
+revision 1.33
+date: 2000/05/17 13:36:44;  author: unrzc9;  state: Exp;  lines: +7 -6
+Bugfixes
+----------------------------
+revision 1.32
+date: 2000/05/17 13:19:16;  author: unrzc9;  state: Exp;  lines: +24 -12
+kleiner feghler in Add_Days_to_Date() / GetYDay repariert
+----------------------------
+revision 1.31
+date: 2000/05/17 12:34:40;  author: unrzc9;  state: Exp;  lines: +69 -19
+neue sub isIP
+kleine aenderung bei web-parameter
+neue datums-variablen
+----------------------------
 revision 1.30
 date: 2000/01/21 16:51:17;  author: unrzc9;  state: Exp;  lines: +8 -7
-new variable $VERSION
+neue Variable $VERSION fuer CPAN eingebaut
 ----------------------------
 revision 1.29
 date: 1999/11/22 09:33:16;  author: unrzc9;  state: Exp;  lines: +27 -16
-Redirect() inserted
+Redirect() eingebaut
 ----------------------------
 revision 1.28
 date: 1999/11/08 13:34:08;  author: unrzc9;  state: Exp;  lines: +94 -8
-New subs:
+Neue Routinen:
 HtmlTop
 HtmlBot
 Add_Days_to_Date
 ----------------------------
 revision 1.27
 date: 1999/11/04 14:41:23;  author: unrzc9;  state: Exp;  lines: +14 -7
-Changes in Fehlermeldung()
+Aenderung in Fehlermeldung()
 ----------------------------
 revision 1.26
 date: 1999/10/27 07:51:28;  author: unrzc9;  state: Exp;  lines: +27 -2
-IsLeapYear corrected 
+IsLeapYear korrigiert
 ----------------------------
 revision 1.25
 date: 1999/10/26 15:05:08;  author: unrzc9;  state: Exp;  lines: +7 -6
-ReadParse improved 
+ReadParse verbessert
 ----------------------------
 revision 1.24
 date: 1999/10/07 11:49:20;  author: unrzc9;  state: Exp;  lines: +58 -11
-OS-detecting 
+OS wird nun erkannt
 ----------------------------
 revision 1.23
 date: 1999/10/06 11:17:42;  author: unrzc9;  state: Exp;  lines: +51 -8
-isLeapYear inserted 
+isLeapYear eingebaut
 ----------------------------
 revision 1.22
 date: 1999/09/23 13:04:09;  author: unrzc9;  state: Exp;  lines: +97 -7
-several new functs
+diverse neue funktionen.
 ----------------------------
 revision 1.21
 date: 1999/09/21 13:43:39;  author: unrzc9;  state: Exp;  lines: +13 -8
-GetSentence  improved
+GetSentence verbessert
 ----------------------------
 revision 1.20
 date: 1999/09/21 12:52:03;  author: unrzc9;  state: Exp;  lines: +54 -6
-GetSentence inserted 
+GetSentence eingebaut.
 ----------------------------
 revision 1.19
 date: 1999/09/16 09:00:51;  author: unrzc9;  state: Exp;  lines: +2 -2
-small typos on perldoc
+jo steht top bei den credits :)
 ----------------------------
 revision 1.18
 date: 1999/09/16 08:59:41;  author: unrzc9;  state: Exp;  lines: +88 -88
-severall typos on perldoc corrected
+typos aus dem englischen korrigiert...vielen dank an Johannes Schritz
 ----------------------------
 revision 1.17
 date: 1999/09/15 13:27:26;  author: unrzc9;  state: Exp;  lines: +337 -5
-first final with doc.
+erste final mit dok
 ----------------------------
 revision 1.16
 date: 1999/09/10 10:45:38;  author: unrzc9;  state: Exp;  lines: +24 -6
-New: GetYearDay 
+Neue Funktion GetYearDay -> liefert die TAgeszahleines Datums
 ----------------------------
 revision 1.15
 date: 1999/09/07 15:44:13;  author: unrzc9;  state: Exp;  lines: +11 -8
-Typo in GetWeekDay corrected..
+Typo in GetWeekDay korrigiert...
 ----------------------------
 revision 1.14
 date: 1999/09/07 15:12:41;  author: unrzc9;  state: Exp;  lines: +26 -5
-GetWeekDay()
+wochentage eingebaut und die funktion GetWekkDay
 ----------------------------
 revision 1.13
 date: 1999/09/07 14:27:04;  author: unrzc9;  state: Exp;  lines: +7 -6

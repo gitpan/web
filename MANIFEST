@@ -1,6 +1,6 @@
 Changes
 MANIFEST
 Makefile.PL
-webtest.pl
+test.pl
 web.pm
 readme.txt

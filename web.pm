@@ -2,7 +2,7 @@ package web;
 require 5.001;
 
 ##############################################################################
-# $Id: web.pm,v 1.30 2000/01/21 16:51:17 unrzc9 Exp $                 
+# $Id: web.pm,v 1.35 2000/08/17 10:00:22 unrzc9 Exp $                 
 # 
 # See the bottom of this file for the POD documentation.  Search for the
 # string '=head'.
@@ -23,9 +23,9 @@ require 5.001;
 # and Steve Brenner's cgi-lib.pl.
 #
 ##############################################################################
-# Last Modified on:	$Date: 2000/01/21 16:51:17 $
+# Last Modified on:	$Date: 2000/08/17 10:00:22 $
 # By:			$Author: unrzc9 $
-# Version:		$Revision: 1.30 $ 
+# Version:		$Revision: 1.35 $ 
 ##############################################################################
 
 use strict;
@@ -35,9 +35,9 @@ BEGIN {
     use vars       qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $VERSION);
 
     # if using RCS/CVS, this may be preferred
-    $VERSION = do { my @r = (q$Revision: 1.30 $ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r };
-    $web::VERSION = do { my @r = (q$Revision: 1.30 $ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r };
-    $web::revision = '$Id: web.pm,v 1.30 2000/01/21 16:51:17 unrzc9 Exp $';
+    $VERSION = do { my @r = (q$Revision: 1.35 $ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r };
+    $web::VERSION = do { my @r = (q$Revision: 1.35 $ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r };
+    $web::revision = '$Id: web.pm,v 1.35 2000/08/17 10:00:22 unrzc9 Exp $';
     # The above must be all one line, for MakeMaker
 
     @ISA         = qw(Exporter);
@@ -46,8 +46,8 @@ BEGIN {
     			&NUnlock &NLock &isZeit &isDatum &isURL &isMail &Fehlermeldung
     			&ReadParse &PrintHeader &Check_Name &numerically &Get_Seconds 
     			&GetWeekDay &isLeapYear &GetYearDay &GetDatebyYDay 
-    			&Add_Days_to_Date &CgiDie &GetSentence 
-    			&NUnlockAll &RemoveHTML &Redirect);
+    			&Add_Days_to_Date &CgiDie &GetSentence &GetPassedDaysbyMonth
+    			&NUnlockAll &RemoveHTML &Redirect &isIP);
     %EXPORT_TAGS = ( );     # eg: TAG => [ qw!name1 name2! ],
 
     # your exported package globals go here,
@@ -100,15 +100,22 @@ if (isLeapYear($web::jahr)) {
 	      6, "Juni", 7, "Juli", 8, "August", 9, "September", 10, "Oktober", 
 	      11, "November", 12, "Dezember");
 @web::wochentag = ("Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag");
+@web::weekdays = ("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday");
 $web::schaltjahr = 2000;
 
-$web::zeit=$web::tag.'.'.$web::monat.'.'.$web::jahr.' - ';
-$web::zeit =$web::zeit.$web::stunde.':'.$web::minute.':'.$web::sek;
-$web::UHRZEIT ="$web::stunde:$web::minute:$web::sek";
-$web::datum = "$web::tag. $web::GER_MONATSNAME{$web::monat} $web::jahr";
-$web::sektime = $web::sek+$web::minute*60+$web::stunde*3600;
-$web::tagzeit = $web::tag+ 30* $web::monat+ 365* $web::jahr;
-$web::PARACOMMENT_SIGN = "_comment";
+$web::zeit		= $web::tag.'.'.$web::monat.'.'.$web::jahr.' - ';
+$web::zeit 		= $web::zeit.$web::stunde.':'.$web::minute.':'.$web::sek;
+$web::UHRZEIT 		= "$web::stunde:$web::minute:$web::sek";
+$web::datum 		= "$web::tag. $web::GER_MONATSNAME{$web::monat} $web::jahr";
+$web::datum_german 	= $web::datum;
+$web::datum_german_long = $web::wochentag[$web::wtag].", ".$web::datum_german;
+$web::datum_english 	= "$web::tag. $web::US_MONATSNAME{$web::monat} $web::jahr";
+$web::datum_english_long = $web::weekdays[$web::wtag].", ".$web::datum_english;
+$web::sektime 		= $web::sek+$web::minute*60+$web::stunde*3600;
+$web::tagzeit           = GetPassedDaysbyMonth($web::monat);
+$web::tagzeit 		+= $web::tag;
+$web::tagzeit           += 365* $web::jahr;
+$web::PARACOMMENT_SIGN 	= "_comment";
 
 $web::LOCK_LOCATION = "/tmp";
 	# Where do we put our lockfiles
@@ -131,7 +138,7 @@ $web::allowuploads = 1;
 	# Do we allow file-uploads? 1=yes, 0=no
 $web::uploadfile = "/tmp/uploader.$$";
 	# Which file will be used temporary for fileuploads.
-my $READPARSE_DEBUG=0;
+$web::ReadParse_Debug =0;
 	# Set it to 1 for debugging
 %web::lockliste = ();
 	# This list will be filled and emptied by the locking
@@ -343,6 +350,46 @@ sub Read_Parafile {
   return %resulthash;
 }
 ##############################################################################
+sub isIP {
+ my $ip = $_[0];
+
+ # This routine was mainly made by Rolf Rost (see perldoc below)
+ 
+ if (not ($ip =~ /\./)) { 
+   return 0;
+ }
+
+ if ( $ip =~ /[^0-9\.]/ ){ 
+   # An IP consists out of numbers and the dot only..
+   return 0;
+ } 
+ 
+ my $val = my($a, $b, $c, $d) = split(/\./, $ip);
+ # A valid IP consists out of 4 parts
+ if( $val != 4 ){ 
+   return 0;
+ }
+ 
+ # Check range:
+ if (  ($a <0 || $a >255) || ($b <0 || $b >255) || ($c<0 || $c >255) || ($d <0 || $d >255)  ){
+   return 0;
+ }
+ 
+ # All numbers at 0 is invalid too:
+ if ( ($a == 0) && ($b == 0) && ($c == 0) && ($d == 0)){
+   return 0;
+ }
+ 
+ # All numbers at 255 is invalid too:
+ if ( ($a == 255) && ($b == 255) && ($c == 255) && ($d== 255) ){
+   return 0;
+ }
+ 
+ # The syntax is valid
+ return 1;
+
+}
+##############################################################################
 sub isZeit {
   my ($testzeit) = @_;
   if (not $testzeit) {return 0;}
@@ -491,7 +538,7 @@ sub ReadParse {
    }
  }
  if ($boundary ne "") {
-   if ($READPARSE_DEBUG) {
+   if ($web::ReadParse_Debug) {
      print(&PrintHeader);
    }
    $head=1;
@@ -532,7 +579,7 @@ sub ReadParse {
        if ($savefile) {
          close FILE;
          $savefile=0;
-         if ($READPARSE_DEBUG) { 
+         if ($web::ReadParse_Debug) { 
            print "Datei $filename ($bytes Byte) wurde erfolgreich nach $tmpsavefile gespeichert.<BR>";
          }
          if ($web::allowuploads) {
@@ -562,7 +609,7 @@ sub ReadParse {
      } elsif ($filename eq "" && $fieldname ne "") {
        $in{$fieldname} .= $_; 
      }
-     if ($READPARSE_DEBUG && /^[\n\r\t\x20-\x7f\xa0-\xff]*$/) { 
+     if ($web::ReadParse_Debug && /^[\n\r\t\x20-\x7f\xa0-\xff]*$/) { 
        print "** $_ <br>";
      }
    }
@@ -572,7 +619,7 @@ sub ReadParse {
    }
    for $i (keys(%in)) {
      $in{$i} =~ s/[\n\r]+$//;
-     if ($READPARSE_DEBUG) {
+     if ($web::ReadParse_Debug) {
        print "in{$i} = (".$in{$i}.")<br>\n";
      }
    }
@@ -606,10 +653,42 @@ sub ReadParse {
 } 
 ################################################################################# 
 sub PrintHeader {
-  if (not $web::HEADER) {
-    $web::HEADER = 1;
-    return "Content-type: text/html\n\n"; 
+  my $reset_cookie = shift;
+  my $reprint = shift || $web::HEADER;
+  my $cookies = shift;
+  my $path = shift || "/";
+  my $expire = shift || 30;
+  my $key;
+  my $result;
+  
+  if ($reprint==1) {
+    return;
   }
+  
+  $web::HEADER = 1;
+  if ($reset_cookie) {
+    my ($sec,$min,$hr,$mday,$mon,$yr,$wday,$yday,$isdst) = gmtime(time + (86400*$expire)); 
+    my @days = ("Sun","Mon","Tue","Wed","Thu","Fri","Sat");
+    my @months = ("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+    my $expdate = sprintf("%3s, %02d-%3s-%4d %02d:%02d:%02d GMT",$days[$wday],$mday,$months[$mon],$yr+1900,$hr,$min,$sec);
+    
+    if (ref($cookies) eq 'HASH') {
+      foreach $key (keys %{$cookies}) {
+        $result .= "Set-Cookie: $key=$cookies->{$key}; path=$path; expires=$expdate;\n";
+      }
+    } elsif ($ENV{'HTTP_COOKIE'}) {
+      my ($name,$cid);
+      my $i;
+      my @cookiefeld = split(/;/,$ENV{'HTTP_COOKIE'});
+      foreach $i (@cookiefeld) {
+        ($name,$cid) = split(/=/,$i);
+        $result .= "Set-Cookie: $name=$cid; path=$path; expires=$expdate;\n";
+        $web::COOKIES{$name} = $cid;
+      }
+    }  
+  }
+  $result .= "Content-type: text/html\n\n"; 
+  return $result;
 }
 ##############################################################################
 sub Check_Name {
@@ -681,20 +760,25 @@ sub isLeapYear {
 ################################################################################
 sub GetDatebyYDay {
   my ($yday) = $_[0];
+  my $jahr = $_[1] || $web::jahr;
   my $msumme;
   my $mon;
   my $this_monat;
   my $schalt;
+  my $rescue;
   
+  $rescue = $web::tage_im_monat[1];
+  $schalt = isLeapYear($jahr);  
+  $web::tage_im_monat[1] = 28 + $schalt;
   
-  $schalt = isLeapYear($web::jahr);  
+ 
   
   if (($yday < 1) || ($yday > (365+$schalt))) {
     return;
   }
   for ($mon=0; $mon<=11; $mon++) {
     $msumme += $web::tage_im_monat[$mon];
-    if ($msumme > $yday) {
+    if ($msumme >= $yday) {
       $this_monat = $mon+1;
       $msumme -= $web::tage_im_monat[$mon];
       $yday -= $msumme;
@@ -705,7 +789,7 @@ sub GetDatebyYDay {
       last;
     }
   }
-
+  $web::tage_im_monat[1] = $rescue;
   return "$yday.$this_monat";
 }
 ################################################################################
@@ -749,6 +833,22 @@ sub GetYearDay {
  return $gyday;
 }
 ################################################################################
+sub GetPassedDaysbyMonth {
+  my $monat = shift;
+  my $i;
+  my $count;
+  
+  if (($monat<=1) || ($monat > 12)) {
+    return 0;
+  }
+  $monat--;
+  
+  for ($i=0; $i<$monat; $i++) {
+    $count += $web::tage_im_monat[$i];
+  }
+  return $count;
+}
+################################################################################
 sub Add_Days_to_Date {
   my $inputdatum = $_[0];
   my $inputtage = $_[1];
@@ -770,14 +870,21 @@ sub Add_Days_to_Date {
   $schalt = isLeapYear($thisyear);  
   
   $tagzahl += $inputtage;
-  while ($tagzahl > (365 + $schalt)) {
-    $tagzahl =  $tagzahl - (365 + $schalt);
-    $thisyear++;
-    $schalt = isLeapYear($thisyear); 
+  
+  if ($tagzahl > 0) {
+    while ($tagzahl > (365 + $schalt)) {
+      $tagzahl =  $tagzahl - (365 + $schalt);
+      $thisyear++;
+      $schalt = isLeapYear($thisyear); 
+    }
+  } else {
+    while ($tagzahl <=0) {
+      $thisyear--;
+      $schalt = isLeapYear($thisyear); 
+      $tagzahl += (365 + $schalt);
+    } 
   }
-  $web::jahr = $thisyear;
-  my $resultdate = GetDatebyYDay($tagzahl);
-  $web::jahr = $rescue;
+  my $resultdate = GetDatebyYDay($tagzahl,$thisyear);
   $resultdate = "$resultdate.$thisyear";
   return $resultdate;
 }
@@ -1062,6 +1169,19 @@ Example:
 	print "Time differs with $diff_sekunden seconds.\n";
 
 
+=head2 GetPassedDaysbyMonth
+
+Returns the number of days that have passed by the inputvalue, which
+represend the number of a month.
+
+Example:
+
+	$month = 8;
+	$passed_days = GetPassedDaysbyMonth($month);
+	print "$passed_days days have passed, before the $month. month came\n";
+
+
+
 =head2 Check_Name
 
 Sometimes you need to get file names or other data from the internet.
@@ -1097,6 +1217,27 @@ won't work.
 =head2 PrintHeader
 
 Returns the string "Content-type: text/html\n\n", if it wasn't returned before.
+Additionally it can reset cookies if there were some before on this domain
+or set new cookies by using a hash-reference.
+The additional parameters are:
+
+Arguments:
+
+	   1		Activates the setting of cookies. If new cookies
+	   		are defined by argument 3, these will be set. Otherwise
+	   		the cookies as given by $ENV{'HTTP_COOKIES'} are
+	   		used.
+	   2		On default, PrintHeader() will return nothing, if it
+	   		was called before. By setting this argument unlike 1
+	   		it will ignore previous calls.
+	   3		A hash-reference, which defines the cookies to be set.
+	   4		The path-value for the cookies. On default its set to
+	   		"/".
+	   5		The lifetime-value for cookies in days. On default its
+	   		set to 30.
+
+
+
 
 =head2 ReadParse
 
@@ -1176,6 +1317,12 @@ Example:
 
 Checks if the argument is a valid German date. The syntax for a date
 was set to: DD.MM.YYYY.
+
+
+=head2 isIP
+
+Checks the given argument for a valid IP-syntax. It returns TRUE
+on success. (This routine was invoked by Rolf Rost, http://www.-i-netlab.de)
 
 
 =head2 isZeit
