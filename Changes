@@ -1,7 +1,55 @@
+
+RCS file: RCS/web.pm,v
+Working file: web.pm
+head: 1.44
+branch:
+locks: strict
+access list:
+symbolic names:
+keyword substitution: kv
+total revisions: 42;	selected revisions: 42
+description:
+start.
+dieses modul soll allgemeine funktionen enthalten, welche fuer das
+RRZE und darueber hinaus nuetzlich sind.
+die funktionen sind zum teil aus eigener hand oder aus diversen anderen
+modulen wie CGI.pm genommen und abgeaendert um sie an die
+Beduerfnisse des RRZE eher anzupassen.
+----------------------------
+revision 1.44
+date: 2002/09/12 09:38:13;  author: unrzc9;  state: Exp;  lines: +2 -0
+Small bugfix.
+----------------------------
+revision 1.43
+date: 2002/09/12 09:36:43;  author: unrzc9;  state: Exp;  lines: +54 -83
+Improvements in calculation of isleapYear and GetWeekDay() / GetYearDay()
+----------------------------
+revision 1.42
+date: 2001/04/14 12:39:28;  author: unrzc9;  state: Exp;  lines: +10 -7
+bugfix
+----------------------------
+revision 1.41
+date: 2001/04/14 12:30:18;  author: unrzc9;  state: Exp;  lines: +16 -10
+modifikationen/.
+----------------------------
+revision 1.40
+date: 2001/04/12 16:09:55;  author: unrzc9;  state: Exp;  lines: +78 -32
+Codebereinigung.
+----------------------------
+revision 1.39
+date: 2001/02/05 19:08:07;  author: unrzc9;  state: Exp;  lines: +7 -5
+Cookiesetzung bei PrintHeader verbessert.
+Trotzdem gibt es noch Probleme beim Setzen von Cookies wo die Domain besetzt ist.
+Nach RFC sonstwie ist alles korrekt; Trotzdem setzt Netscape das Cookie fuer die Domain
+als Pfad ein.
+----------------------------
+revision 1.38
+date: 2001/02/05 18:15:01;  author: unrzc9;  state: Exp;  lines: +19 -9
+bugfix
 ----------------------------
 revision 1.35
 date: 2000/08/17 10:00:22;  author: unrzc9;  state: Exp;  lines: +66 -10
-Improvement of PrintHeader()
+Neue Funktionen und Verbesserungen
 ----------------------------
 revision 1.34
 date: 2000/08/02 07:50:10;  author: unrzc9;  state: Exp;  lines: +35 -7
@@ -9,11 +57,11 @@ New function: GetPassedDaysbyMonth
 ----------------------------
 revision 1.33
 date: 2000/05/17 13:36:44;  author: unrzc9;  state: Exp;  lines: +7 -6
-Bugfixes
+VERSION wieder eingebaut fuer CPAN/Makefile
 ----------------------------
 revision 1.32
 date: 2000/05/17 13:19:16;  author: unrzc9;  state: Exp;  lines: +24 -12
-kleiner feghler in Add_Days_to_Date() / GetYDay repariert
+kleiner feghler in Add_Days_to_Date() / GetYDay repoariert
 ----------------------------
 revision 1.31
 date: 2000/05/17 12:34:40;  author: unrzc9;  state: Exp;  lines: +69 -19

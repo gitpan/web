@@ -34,7 +34,7 @@ INSTALLATION
              use web;
 
 AUTHOR INFORMATION
-     Copyright 1999 Wolfgang Wiese.  All rights reserved.  It may
+     Copyright 1999-2002 Wolfgang Wiese.  All rights reserved.  It may
      be used and modified freely, but I do request that this
      copyright notice remain attached to the file.  You may
      modify this module as you wish, but if you redistribute a
@@ -49,3 +49,4 @@ CREDITS
      Gert Buettner (g.buettner@rrze.uni-erlangen.de)
      Manfred Abel (m.abel@rrze.uni-erlangen.de)
      Rolf Rost (rolfrost@yahoo.com)
+     Harald Mattern (webmaster@tsmweb.de)

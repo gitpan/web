@@ -2,7 +2,7 @@ package web;
 require 5.001;
 
 ##############################################################################
-# $Id: web.pm,v 1.35 2000/08/17 10:00:22 unrzc9 Exp $                 
+# $Id: web.pm,v 1.44 2002/09/12 09:38:13 unrzc9 Exp $                 
 # 
 # See the bottom of this file for the POD documentation.  Search for the
 # string '=head'.
@@ -23,9 +23,9 @@ require 5.001;
 # and Steve Brenner's cgi-lib.pl.
 #
 ##############################################################################
-# Last Modified on:	$Date: 2000/08/17 10:00:22 $
+# Last Modified on:	$Date: 2002/09/12 09:38:13 $
 # By:			$Author: unrzc9 $
-# Version:		$Revision: 1.35 $ 
+# Version:		$Revision: 1.44 $ 
 ##############################################################################
 
 use strict;
@@ -35,9 +35,9 @@ BEGIN {
     use vars       qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $VERSION);
 
     # if using RCS/CVS, this may be preferred
-    $VERSION = do { my @r = (q$Revision: 1.35 $ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r };
-    $web::VERSION = do { my @r = (q$Revision: 1.35 $ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r };
-    $web::revision = '$Id: web.pm,v 1.35 2000/08/17 10:00:22 unrzc9 Exp $';
+    $VERSION = do { my @r = (q$Revision: 1.44 $ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r };
+    $web::VERSION = do { my @r = (q$Revision: 1.44 $ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r };
+    $web::revision = '$Id: web.pm,v 1.44 2002/09/12 09:38:13 unrzc9 Exp $';
     # The above must be all one line, for MakeMaker
 
     @ISA         = qw(Exporter);
@@ -45,7 +45,7 @@ BEGIN {
     			&ReadLayout &Read_Parafile
     			&NUnlock &NLock &isZeit &isDatum &isURL &isMail &Fehlermeldung
     			&ReadParse &PrintHeader &Check_Name &numerically &Get_Seconds 
-    			&GetWeekDay &isLeapYear &GetYearDay &GetDatebyYDay 
+    			&GetWeekDay &isLeapYear &MakeTimeLocal &GetYearDay &GetDatebyYDay 
     			&Add_Days_to_Date &CgiDie &GetSentence &GetPassedDaysbyMonth
     			&NUnlockAll &RemoveHTML &Redirect &isIP);
     %EXPORT_TAGS = ( );     # eg: TAG => [ qw!name1 name2! ],
@@ -94,8 +94,8 @@ if (isLeapYear($web::jahr)) {
 }
 
 # Definitions for the date
-%web::US_MONATSNAME = ("Jan", 1, "Feb", 2, "Mar", 3, "Apr", 4, "May", 5, "Jun", 6, "Jul", 
-                   7, "Aug", 8, "Sep", 9, "Oct", 10, "Nov", 11, "Dec", 12);
+%web::US_MONATSNAME = (1, "Jan", 2, "Feb", 3, "Mar", 4, "Apr", 5, "May", 6, "Jun",  
+                    	7, "Jul", 8, "Aug", 9, "Sep", 10, "Oct", 11, "Nov", 12, "Dec");
 %web::GER_MONATSNAME = (1, "Januar", 2, "Februar", 3, "M&auml;rz", 4, "April", 5, "Mai", 
 	      6, "Juni", 7, "Juli", 8, "August", 9, "September", 10, "Oktober", 
 	      11, "November", 12, "Dezember");
@@ -109,7 +109,7 @@ $web::UHRZEIT 		= "$web::stunde:$web::minute:$web::sek";
 $web::datum 		= "$web::tag. $web::GER_MONATSNAME{$web::monat} $web::jahr";
 $web::datum_german 	= $web::datum;
 $web::datum_german_long = $web::wochentag[$web::wtag].", ".$web::datum_german;
-$web::datum_english 	= "$web::tag. $web::US_MONATSNAME{$web::monat} $web::jahr";
+$web::datum_english 	= $web::tag.". ".$web::US_MONATSNAME{$web::monat}." ".$web::jahr;
 $web::datum_english_long = $web::weekdays[$web::wtag].", ".$web::datum_english;
 $web::sektime 		= $web::sek+$web::minute*60+$web::stunde*3600;
 $web::tagzeit           = GetPassedDaysbyMonth($web::monat);
@@ -147,7 +147,8 @@ $web::errorlayout_file = "";
 	# Default Fehlerlayout-Datei fuer Fehlermeldungen. Kann von Programmen
 	# ueberschrieben werden, um beim Aufruf der Funktion Fehlermeldung() sich die
 	# Angabe der Layoutdatei zu ersparen.
-		
+$web::POST_MAX = 1024 * 100;
+	# Maximale Groesse fuer Uebertragungen in Bytes.		
 ##############################################################################
 # SubRoutines
 ##############################################################################
@@ -324,13 +325,13 @@ sub Read_Parafile {
     open(f1,"<$filename");
       while(<f1>) {
         chomp($_);
-        if ($_ =~ /^#/) {
+        if ($_ =~ /^\s*#/) {
            if ($lastcomment) {
               $kurznamebez = $lastcomment.$web::PARACOMMENT_SIGN;
               $resulthash{$kurznamebez} .= $';     
           }        
         } else {
-           ($entry_name, $entry_value) = split(/\t+/,$_,2);  
+           ($entry_name, $entry_value) = split(/\s+/,$_,2);  
            if ($entry_name) { 
              $resulthash{$entry_name} = $entry_value;
              $lastcomment = $entry_name;
@@ -517,11 +518,11 @@ sub CgiDie {
 }
 ##############################################################################
 sub ReadParse {
- my ($buffer);
+ my $buffer;
  my ($namebuffer,$valuebuffer);
- my (@nvpairs);
- my ($pair);
- my ($boundary)="";
+ my @nvpairs;
+ my $pair;
+ my $boundary ="";
  my ($fieldname, $filetype);
  my ($filename);
  my ($savefile, $head);
@@ -531,8 +532,21 @@ sub ReadParse {
  my $bytes;
  my %in;
  my $tmpsavefile = $web::uploadfile;
+ my ($meth,$content_length) = ('','');
+ $content_length = defined($ENV{'CONTENT_LENGTH'}) ? $ENV{'CONTENT_LENGTH'} : 0;
+ $meth =$ENV{'REQUEST_METHOD'} if defined($ENV{'REQUEST_METHOD'});
+ my $type = $ENV{'CONTENT_TYPE'};
  
- if ($ENV{'CONTENT_TYPE'} =~ /multipart\//) {
+  # Disable warnings as this code deliberately uses local and environment
+  # variables which are preset to undef (i.e., not explicitly initialized)
+  my $perlwarn = $^W;
+  $^W = 0;
+ 
+ if (($web::POST_MAX > 0) && ($content_length > $web::POST_MAX)) {
+   $in{'status'} = "Content-Length zu gross";
+   return %in;
+ }
+ if (($ENV{'CONTENT_TYPE'}) && ($ENV{'CONTENT_TYPE'} =~ /multipart\//)) {
    if ($ENV{'CONTENT_TYPE'} =~ /boundary=(--\S+)/) {
      $boundary="--".$1;
    }
@@ -626,22 +640,36 @@ sub ReadParse {
    unlink($tmpsavefile); 
    return (%in); 
  } else {
-  
-   if ($ENV{'REQUEST_METHOD'} eq "GET") { $buffer = $ENV{'QUERY_STRING'}; } 
+#   if (!defined $meth || $meth eq '' || $meth eq 'GET' || 
+#      $type eq 'application/x-www-form-urlencoded') {
+#     $buffer = $ENV{'QUERY_STRING'} if defined $ENV{'QUERY_STRING'};; 
+#     $buffer ||= $ENV{'REDIRECT_QUERY_STRING'} if defined $ENV{'REDIRECT_QUERY_STRING'};      
+#   } else {
+#  
+#     read(STDIN, $buffer, $ENV{'CONTENT_LENGTH'});  
+#   }
+   if ($ENV{'REQUEST_METHOD'} eq "GET") { $buffer = $ENV{'QUERY_STRING'} || $ENV{'REDIRECT_QUERY_STRING'}; } 
    else { read(STDIN, $buffer, $ENV{'CONTENT_LENGTH'});  }
- 
-   if (!($buffer)) {$buffer=substr($ENV{'PATH_INFO'},1,length($ENV{'PATH_INFO'}));}
-   if (!($buffer)) {$buffer=@ARGV; }
+
+   if ((not $buffer) && ($ENV{'PATH_INFO'})) {   
+     $buffer = $ENV{'PATH_INFO'};
+     $buffer =~ s/^\///;
+   } elsif (not $buffer) {
+     $buffer = @ARGV; 
+   }
  
    @nvpairs = split(/&/,$buffer);
    foreach $pair (@nvpairs)
     {  
       ($namebuffer, $valuebuffer) = split(/=/, $pair);
-      $namebuffer =~ tr/+/ /;
-      $namebuffer =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
-
-      $valuebuffer =~ tr/+/ /;
-      $valuebuffer =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
+      if ($namebuffer) {
+        $namebuffer =~ tr/+/ /;
+        $namebuffer =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
+      }
+      if ($valuebuffer) {
+        $valuebuffer =~ tr/+/ /;
+        $valuebuffer =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
+      }
       if (exists($in{$namebuffer})) {
         $in{$namebuffer} .= ", $valuebuffer";
       } else {
@@ -658,13 +686,17 @@ sub PrintHeader {
   my $cookies = shift;
   my $path = shift || "/";
   my $expire = shift || 30;
+  my $domain = shift;
   my $key;
   my $result;
+  my $SETDOMAIN;
   
   if ($reprint==1) {
     return;
   }
-  
+  if ($domain) {
+    $SETDOMAIN = " domain=$domain;";
+  }
   $web::HEADER = 1;
   if ($reset_cookie) {
     my ($sec,$min,$hr,$mday,$mon,$yr,$wday,$yday,$isdst) = gmtime(time + (86400*$expire)); 
@@ -674,7 +706,11 @@ sub PrintHeader {
     
     if (ref($cookies) eq 'HASH') {
       foreach $key (keys %{$cookies}) {
-        $result .= "Set-Cookie: $key=$cookies->{$key}; path=$path; expires=$expdate;\n";
+        $result .= "Set-Cookie: $key=$cookies->{$key};";
+        $result .= " expires=$expdate;";
+        $result .= " path=$path;";
+        $result .= "$SETDOMAIN"; 
+        $result .= "\n"; 
       }
     } elsif ($ENV{'HTTP_COOKIE'}) {
       my ($name,$cid);
@@ -682,7 +718,11 @@ sub PrintHeader {
       my @cookiefeld = split(/;/,$ENV{'HTTP_COOKIE'});
       foreach $i (@cookiefeld) {
         ($name,$cid) = split(/=/,$i);
-        $result .= "Set-Cookie: $name=$cid; path=$path; expires=$expdate;\n";
+        $result .= "Set-Cookie: $name=$cid;";
+        $result .= " expires=$expdate;";
+        $result .= " path=$path;";
+        $result .= "$SETDOMAIN";
+        $result .= "\n";
         $web::COOKIES{$name} = $cid;
       }
     }  
@@ -711,51 +751,18 @@ sub Get_Seconds {
 }
 ################################################################################
 sub isLeapYear {
-  my ($thisyear) = $_[0] || $web::jahr;
-  my $count = $web::schaltjahr;
-  my $hcount = $web::schaltjahr;
-  my $fhcount = $web::schaltjahr;
-  
-  # I dont use the math-modules to avoid loading too
-  # much moduls, that would simply do the same...
-  
-  if (not $thisyear) {
+    my $year  = shift || $web::jahr;
+
+    return 1
+        if ( ( $year / 4   == int( $year / 4   ) ) &&
+             ( $year / 100 == int( $year / 100 ) ) &&
+             ( $year / 400 == int( $year / 400 ) )    );
+
+    return 1
+        if ( ( $year / 4   == int( $year / 4   ) ) &&
+             ( $year / 100 != int( $year / 100 ) )    );
+
     return 0;
-  }
-  if ($thisyear > $count) {
-    while($thisyear > $count) {
-      $count += 4;
-    }
-    while($thisyear > $hcount) {
-      $hcount += 100;
-    }
-    while($thisyear > $fhcount) {
-      $fhcount += 400;
-    }
-  } else {
-    while($thisyear < $count) {
-      $count -= 4;
-    }
-    while($thisyear < $hcount) {
-      $hcount -= 100;
-    }
-    while($thisyear < $fhcount) {
-      $fhcount -= 400;
-    }
-  }
-  if ($count==$thisyear) {
-    if ($hcount==$thisyear) {
-      if ($fhcount==$thisyear) {
-        return 1;
-      } else {
-        return 0;
-      }
-    } else {
-      return 1;
-    }
-  } else {
-    return 0;
-  }
 }
 ################################################################################
 sub GetDatebyYDay {
@@ -794,43 +801,69 @@ sub GetDatebyYDay {
 }
 ################################################################################
 sub GetWeekDay {
- my ($inputdatum)=$_[0];
- my ($gmday, $gmonat, $gjahr);
- my ($gsec, $gmin, $gstd, $gwday, $gyday, $gisday);
- my $gwdtime;
+    my $inputdatum = shift;
 
-use Time::Local;
- 
- # Das Datum muss das Format DD.MM.YYYY haben.
- # Als Ergebnis erhaelt man den Wochentag. 0=Sonntag, 6=Samstag
- # Im Fehlerfalle wird -1 zurueckgegeben.
- 
- 
- if (not isDatum($inputdatum)) {return "-1";}
- ($gmday, $gmonat, $gjahr) =split(/\./,$inputdatum);
- $gmonat--;
- $gwdtime = timelocal(1,1,1, $gmday, $gmonat, $gjahr);
- ($gsec, $gmin, $gstd, $gmday, $gmonat, $gjahr, $gwday, $gyday, $gisday) = localtime($gwdtime);
+    return '-1'
+        unless ( isDatum( $inputdatum ) );
 
- return $gwday;
+    my ( $mday, $mon, $year ) = split( /\./, $inputdatum, 3 );
+
+    $year += 1900
+        if ( $year < 999 );
+
+    my $a = int( ( 14 - $mon ) / 12 );
+    my $y = $year - $a;
+    my $m = $mon + ( 12 * $a ) - 2;
+    my $result = ( $mday + $y + int($y/4) - int($y/100) + int($y/400) + int(31/(12*$m)) ) % 7;
+    return $result;
+}
+##############################################################################
+sub MakeTimeLocal {
+  my $zeit = shift;
+  my ($dat_datum,$dat_uhr);
+  my ($dat_tag,$dat_monat,$dat_jahr);
+  my ($stunds, $mins, $seks);
+  my $result;
+  
+  if (not $zeit) {
+    return;
+  }
+  use Time::Local;
+  ($dat_datum,$dat_uhr) = split(/ - /,$zeit,2);
+  ($dat_tag, $dat_monat, $dat_jahr) = split(/[\.:]/,$dat_datum,3);
+  ($stunds, $mins, $seks) = split(/:/,$dat_uhr,3);  
+  $dat_monat--;
+  $dat_jahr -= 1900;
+
+  if ($dat_monat <0) { $dat_monat=0;}
+  $result = timelocal($seks, $mins, $stunds, $dat_tag, $dat_monat, $dat_jahr);
+  return $result;
 }
 ################################################################################
 sub GetYearDay {
- my ($inputdatum)=$_[0];
- my ($gmday, $gmonat, $gjahr); 
- my ($gsec, $gmin, $gstd, $gwday, $gyday, $gisday);
- my $gwdtime;
+  my $inputdatum = shift;
+  my $res  = 0;
+  my $cnt;
+  my $save= $web::tage_im_monat[1];
+
+  return '-1'
+        unless ( isDatum( $inputdatum ) );
+
+  my ( $mday, $mon, $year ) = split( /\./, $inputdatum, 3 );
+
+  $year += 1900  if ( $year < 999 );
+  $mon--;
+
+  $web::tage_im_monat[1] = 28 + isLeapYear( $year );
+
+  for ( $cnt = 0; $cnt < $mon; $cnt++ ) {
+      $res += $web::tage_im_monat[$cnt];
+  }
+
+  $web::tage_im_monat[1] = $save;
+
+  return ( $res + $mday );
   
-  use Time::Local;
-  if (not isDatum($inputdatum)) {return "-1";}
- 
-  ($gmday, $gmonat, $gjahr) =split(/\./,$inputdatum);
-  $gmonat--;
-  $gwdtime = timelocal(1,1,1, $gmday, $gmonat, $gjahr);
-  ($gsec, $gmin, $gstd, $gmday, $gmonat, $gjahr, $gwday, $gyday, $gisday) = localtime($gwdtime);
-  $gyday++;
-  
- return $gyday;
 }
 ################################################################################
 sub GetPassedDaysbyMonth {
@@ -1085,6 +1118,11 @@ See NLock().
 In using this command, you can remove all file-locks, that was set with 
 NLock() and which wasn't removed before.
 It takes the list of file-locks out of the hash %web::lockliste.
+
+=head2 MakeTimeLocal
+
+Translates the timesyntax of web.pm into the standard time-syntax, which
+is the seconds since 1970.
 
 =head2 GetYearDay
 
@@ -1481,6 +1519,8 @@ Thanks very much to:
 =item Manfred Abel (m.abel@rrze.uni-erlangen.de)
 
 =item Rolf Rost (rolfrost@yahoo.com)
+
+=item Harald Mattern (webmaster@tsmweb.de)
 
 =cut
 
