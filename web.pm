@@ -2,7 +2,7 @@ package web;
 require 5.001;
 
 ##############################################################################
-# $Id: web.pm,v 1.29 1999/11/22 09:33:16 unrzc9 Exp $                 
+# $Id: web.pm,v 1.30 2000/01/21 16:51:17 unrzc9 Exp $                 
 # 
 # See the bottom of this file for the POD documentation.  Search for the
 # string '=head'.
@@ -23,20 +23,21 @@ require 5.001;
 # and Steve Brenner's cgi-lib.pl.
 #
 ##############################################################################
-# Last Modified on:	$Date: 1999/11/22 09:33:16 $
+# Last Modified on:	$Date: 2000/01/21 16:51:17 $
 # By:			$Author: unrzc9 $
-# Version:		$Revision: 1.29 $ 
+# Version:		$Revision: 1.30 $ 
 ##############################################################################
 
 use strict;
 
 BEGIN {
     use Exporter   ();
-    use vars       qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+    use vars       qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $VERSION);
 
     # if using RCS/CVS, this may be preferred
-    $web::VERSION = do { my @r = (q$Revision: 1.29 $ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r };
-    $web::revision = '$Id: web.pm,v 1.29 1999/11/22 09:33:16 unrzc9 Exp $';
+    $VERSION = do { my @r = (q$Revision: 1.30 $ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r };
+    $web::VERSION = do { my @r = (q$Revision: 1.30 $ =~ /\d+/g); sprintf "%d."."%02d" x $#r, @r };
+    $web::revision = '$Id: web.pm,v 1.30 2000/01/21 16:51:17 unrzc9 Exp $';
     # The above must be all one line, for MakeMaker
 
     @ISA         = qw(Exporter);
@@ -1311,7 +1312,7 @@ Example:
 
 =head1 AUTHOR INFORMATION
 
-Copyright 1999 Wolfgang Wiese.  All rights reserved.
+Copyright 1999-2000 Wolfgang Wiese.  All rights reserved.
 It may be used and modified freely, but I do request that this copyright
 notice remain attached to the file.  You may modify this module as you 
 wish, but if you redistribute a modified version, please attach a note
